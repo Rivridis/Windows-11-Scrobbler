@@ -30,25 +30,25 @@ IAsyncAction GetMediaInfo()
         }
 
 
-        if (percentage >= 50.0 && flag != 1)
+        if (percentage >= 60.0 && flag != 1)
         {
             cout << "Scrobbled" << endl;
             wcout << title << endl;
             flag = 1;
+
         }
         if (percentage < 45.0)
         {
             flag = 0;
-            if (percentage < 1.0 && tflag != 1)
+            if (percentage < 0.1 && tflag != 1)
             {
                 const auto p1 = std::chrono::system_clock::now();
                 cout << std::chrono::duration_cast<std::chrono::seconds>(p1.time_since_epoch()).count() << '\n';
 
                 tflag = 1;
-            }
-            if (percentage > 1.0)
-            {
+                std::this_thread::sleep_for(std::chrono::seconds(3));
                 tflag = 0;
+                
             }
         }
     }

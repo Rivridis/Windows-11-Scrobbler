@@ -8,3 +8,4 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <curl/curl.h>
