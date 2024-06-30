@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+﻿#include "pch.h"]
 
 using namespace std;
 using namespace winrt;
@@ -6,8 +6,42 @@ using namespace Windows::Foundation;
 using namespace Windows::Media::Control;
 using namespace Windows::System::Threading;
 
+
+
 int flag = 0;
 int tflag = 0;
+string timestamp = "";
+string api_key();
+
+static void scrobble(wstring artistc, wstring titlec,string timestampc)
+{
+    CURL* curl;
+    CURLcode res;
+    string arts = to_string(artistc);
+    string titl = to_string(titlec);
+    string apikey = api_key();
+    if(arts == "")
+	{
+		arts = "Unknown";
+	}
+
+
+    curl_global_init(CURL_GLOBAL_ALL);
+    curl = curl_easy_init();
+    if (curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, "http://ws.audioscrobbler.com/2.0/");
+        string reqformat = std::format("artist={}&track={}&timestamp={}&api_key={}&api_sig={}&sk={}", arts, titl, timestampc,apikey,"test","test");
+        cout<<reqformat;
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, reqformat);
+
+        res = curl_easy_perform(curl);
+        if (res != CURLE_OK)
+            fprintf(stderr, "curl_easy_perform() failed: %s\n",
+                curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
+    }
+
+}
 
 IAsyncAction GetMediaInfo()
 {
@@ -33,6 +67,7 @@ IAsyncAction GetMediaInfo()
         if (percentage >= 60.0 && flag != 1)
         {
             cout << "Scrobbled" << endl;
+            scrobble(artist, title,timestamp );
             wcout << title << endl;
             flag = 1;
 
@@ -43,14 +78,16 @@ IAsyncAction GetMediaInfo()
             if (percentage < 0.1 && tflag != 1)
             {
                 const auto p1 = std::chrono::system_clock::now();
-                cout << std::chrono::duration_cast<std::chrono::seconds>(p1.time_since_epoch()).count() << '\n';
-
+                auto time = std::chrono::duration_cast<std::chrono::seconds>(p1.time_since_epoch()).count();
+                timestamp = std::to_string(time);
+                cout << timestamp;
                 tflag = 1;
                 std::this_thread::sleep_for(std::chrono::seconds(3));
                 tflag = 0;
                 
             }
         }
+        
     }
 }
 
