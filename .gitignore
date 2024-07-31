@@ -364,3 +364,4 @@ FodyWeavers.xsd
 /vcpkg_installed/x64-windows
 /secrets.cpp
 /secret.cpp
+/vcpkg_installed

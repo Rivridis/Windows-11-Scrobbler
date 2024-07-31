@@ -1,4 +1,4 @@
-﻿#include "pch.h"]
+﻿#include "pch.h"
 
 using namespace std;
 using namespace winrt;
@@ -12,6 +12,12 @@ int flag = 0;
 int tflag = 0;
 string timestamp = "";
 string api_key();
+string shasec();
+
+void requestMobileSession(const string username, const string password, const string api_key, const string api_sig)
+{
+
+}
 
 static void scrobble(wstring artistc, wstring titlec,string timestampc)
 {
@@ -20,6 +26,7 @@ static void scrobble(wstring artistc, wstring titlec,string timestampc)
     string arts = to_string(artistc);
     string titl = to_string(titlec);
     string apikey = api_key();
+    string shase = shasec();
     if(arts == "")
 	{
 		arts = "Unknown";
