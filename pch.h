@@ -10,3 +10,4 @@
 #include <chrono>
 #include <curl/curl.h>
 #include <format>
+#include <nlohmann/json.hpp>

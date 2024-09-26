@@ -1,4 +1,6 @@
 ﻿#include "pch.h"
+#include "md5.h"
+using json = nlohmann::json;
 
 using namespace std;
 using namespace winrt;
@@ -11,15 +13,23 @@ using namespace Windows::System::Threading;
 int flag = 0;
 int tflag = 0;
 string timestamp = "";
+string hashed = "";
+string sessionKey = "";
 string api_key();
 string shasec();
+string username();
+string password();
 
-void requestMobileSession(const string username, const string password, const string api_key, const string api_sig)
+string signature(const string username, const string password, const string api_key, const string shaseck)
 {
+	string val = "api_key" + api_key + "methodauth.getMobileSessionpassword" + password + "username" + username + shaseck;
+    MD5 md5;
+    string hashed = md5(val);
+    return hashed;
 
 }
 
-static void scrobble(wstring artistc, wstring titlec,string timestampc)
+static void scrobble(wstring artistc, wstring titlec)
 {
     CURL* curl;
     CURLcode res;
@@ -37,7 +47,7 @@ static void scrobble(wstring artistc, wstring titlec,string timestampc)
     curl = curl_easy_init();
     if (curl) {
         curl_easy_setopt(curl, CURLOPT_URL, "http://ws.audioscrobbler.com/2.0/");
-        string reqformat = std::format("artist={}&track={}&timestamp={}&api_key={}&api_sig={}&sk={}", arts, titl, timestampc,apikey,"test","test");
+        string reqformat = std::format("artist={}&track={}&method={}&timestamp={}&api_key={}&api_sig={}&sk={}", arts, titl, "track.scrobble",timestamp, apikey, hashed, sessionKey);
         cout<<reqformat;
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, reqformat);
 
@@ -74,7 +84,7 @@ IAsyncAction GetMediaInfo()
         if (percentage >= 60.0 && flag != 1)
         {
             cout << "Scrobbled" << endl;
-            scrobble(artist, title,timestamp );
+            scrobble(artist, title);
             wcout << title << endl;
             flag = 1;
 
@@ -107,8 +117,69 @@ void StartPeriodicMediaInfoCheck()
         }, period);
 }
 
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
+    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
 int main()
 {
+   hashed = signature(username(), password(), api_key(), shasec());
+   cout << hashed;
+   CURL* curl;
+   CURLcode res;
+  
+   string url = "https://ws.audioscrobbler.com/2.0/";
+   string post_fields = "method=auth.getMobileSession&username=" + username() +
+       "&password=" + password() + "&api_key=" + api_key() +
+       "&api_sig=" + hashed + "&format=json";
+
+   curl_global_init(CURL_GLOBAL_DEFAULT);
+   curl = curl_easy_init();
+
+   if (curl) {
+       std::string readBuffer;
+
+       // Set the URL for the POST request
+       curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+       // Specify that this is a POST request
+       curl_easy_setopt(curl, CURLOPT_POST, 1L);
+
+       // Set the POST fields
+       curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields.c_str());
+
+       // Set up a callback function to store the result of the request
+       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+       curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+       // Perform the request, res will get the return code
+       res = curl_easy_perform(curl);
+
+       // Check for errors
+       if (res != CURLE_OK)
+           fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+       else {
+           // Parse the JSON response to extract the session key
+           try {
+               json data = json::parse(readBuffer);
+               sessionKey = data["session"]["key"];
+               cout << "Session Key: " << sessionKey << std::endl;
+           }
+           catch (const json::exception& e) {
+               std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+           }
+       }
+
+       // Print the response (JSON)
+       std::cout << "Response: " << readBuffer << std::endl;
+
+       // Clean up
+       curl_easy_cleanup(curl);
+   }
+
+   curl_global_cleanup();
+
    init_apartment();
    StartPeriodicMediaInfoCheck();
    getchar();
