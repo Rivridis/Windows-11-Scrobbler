@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "md5.h"
 using json = nlohmann::json;
+#include <boost/locale.hpp> 
 
 using namespace std;
 using namespace winrt;
@@ -20,11 +21,19 @@ string shasec();
 string username();
 string password();
 
+string to_utf8(const string& input) {
+    return boost::locale::conv::to_utf<char>(input, "UTF-8");
+}
+
 string signature(const string username, const string password, const string api_key, const string shaseck)
 {
-	string val = "api_key" + api_key + "methodauth.getMobileSessionpassword" + password + "username" + username + shaseck;
+    string utf8_username = to_utf8(username);
+    string utf8_password = to_utf8(password);
+    string utf8_api_key = to_utf8(api_key);
+    string utf8_shaseck = to_utf8(shaseck);
+	string val = "api_key" + utf8_api_key + "methodauth.getMobileSessionpassword" + utf8_password + "username" + utf8_username + utf8_shaseck;
     MD5 md5;
-    string hashed = md5(val);
+    hashed = md5(val);
     return hashed;
 
 }
@@ -33,8 +42,8 @@ static void scrobble(wstring artistc, wstring titlec)
 {
     CURL* curl;
     CURLcode res;
-    string arts = to_string(artistc);
-    string titl = to_string(titlec);
+    string arts = boost::locale::conv::from_utf(artistc, "UTF-8");
+    string titl = boost::locale::conv::from_utf(titlec, "UTF-8");
     string apikey = api_key();
     string shase = shasec();
     if(arts == "")
@@ -46,10 +55,32 @@ static void scrobble(wstring artistc, wstring titlec)
     curl_global_init(CURL_GLOBAL_ALL);
     curl = curl_easy_init();
     if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, "http://ws.audioscrobbler.com/2.0/");
-        string reqformat = std::format("artist={}&track={}&method={}&timestamp={}&api_key={}&api_sig={}&sk={}", arts, titl, "track.scrobble",timestamp, apikey, hashed, sessionKey);
+
+        curl_easy_setopt(curl, CURLOPT_URL, "https://ws.audioscrobbler.com/2.0/");
+
+        string utf8_artist = to_utf8(arts);
+        string utf8_title = to_utf8(titl);
+        string utf8_timestamp = to_utf8(timestamp);
+        string utf8_apikey = to_utf8(apikey);
+        string utf8_hash = to_utf8(hashed);
+        string utf8_sessionkey = to_utf8(sessionKey);
+
+        char* encoded_artist = curl_easy_escape(curl, utf8_artist.c_str(), utf8_artist.length());
+        char* encoded_title = curl_easy_escape(curl, utf8_title.c_str(), utf8_title.length());
+        char* encoded_method = curl_easy_escape(curl, "track.scrobble", 14);  // Length of "track.scrobble"
+        char* encoded_timestamp = curl_easy_escape(curl, utf8_timestamp.c_str(), utf8_timestamp.length());
+        char* encoded_apikey = curl_easy_escape(curl, utf8_apikey.c_str(), utf8_apikey.length());
+        char* encoded_hash = curl_easy_escape(curl, utf8_hash.c_str(), utf8_hash.length());
+        char* encoded_sessionkey = curl_easy_escape(curl, utf8_sessionkey.c_str(), utf8_sessionkey.length());
+
+        // Format the URL-encoded data into a request string
+        string reqformat = std::format("artist={}&track={}&method={}&timestamp={}&api_key={}&api_sig={}&sk={}",
+            encoded_artist, encoded_title, encoded_method, encoded_timestamp,
+            encoded_apikey, encoded_hash, encoded_sessionkey);
+
         cout<<reqformat;
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, reqformat);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, reqformat.c_str());
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
         res = curl_easy_perform(curl);
         if (res != CURLE_OK)
