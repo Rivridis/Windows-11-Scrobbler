@@ -74,9 +74,12 @@ static void scrobble(wstring artistc, wstring titlec)
         char* encoded_sessionkey = curl_easy_escape(curl, utf8_sessionkey.c_str(), utf8_sessionkey.length());
 
         // Format the URL-encoded data into a request string
-        string reqformat = std::format("artist={}&track={}&method={}&timestamp={}&api_key={}&api_sig={}&sk={}",
-            encoded_artist, encoded_title, encoded_method, encoded_timestamp,
-            encoded_apikey, encoded_hash, encoded_sessionkey);
+        string reqformat = "artist=" + string(encoded_artist) + "&track=" + string(encoded_title) +
+            "&method=" + string(encoded_method) +
+            "&timestamp=" + string(encoded_timestamp) +
+            "&api_key=" + string(encoded_apikey) +
+            "&api_sig=" + string(encoded_hash) +
+            "&sk=" + string(encoded_sessionkey);
 
         cout<<reqformat;
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, reqformat.c_str());
