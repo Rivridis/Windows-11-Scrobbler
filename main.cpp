@@ -31,7 +31,7 @@ string signature(const string username, const string password, const string api_
     string utf8_password = to_utf8(password);
     string utf8_api_key = to_utf8(api_key);
     string utf8_shaseck = to_utf8(shaseck);
-	string val = "api_key" + utf8_api_key + "methodauth.getMobileSessionpassword" + utf8_password + "username" + utf8_username + utf8_shaseck;
+	string val = "api_key" + utf8_api_key + "methodauth.getMobileSessionpassword" + utf8_password + "username" + utf8_username + shaseck;
     MD5 md5;
     hashed = md5(val);
     return hashed;
